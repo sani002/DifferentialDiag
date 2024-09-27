@@ -11,7 +11,7 @@ hide_streamlit_style = """
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             footer:after {
-                            content:'This app is in its early stage. We recommend you to seek professional advice from a dermatologist. Thank you.'; 
+                            content:'This app is in its early stage. We recommend you to seek professional advice from a real doctor. Thank you.'; 
                             visibility: visible;
                             display: block;
                             position: relative;
@@ -41,13 +41,6 @@ def parse_groq_stream(stream):
             if chunk.choices[0].delta.content is not None:
                 yield chunk.choices[0].delta.content
 
-
-# Streamlit page configuration
-st.set_page_config(
-    page_title="Differential Diagnostic Assistant",
-    page_icon="⚕️",
-    layout="centered",
-)
 
 # ---- Environment Variables ---
 os.environ["GROQ_API_KEY"] = "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"
