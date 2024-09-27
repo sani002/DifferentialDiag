@@ -19,19 +19,12 @@ st.set_page_config(
     layout="centered",
 )
 
-# Load secrets
-try:
-    secrets = dotenv_values(".env")  # for dev env
-    GROQ_API_KEY = secrets["GROQ_API_KEY"]
-except:
-    secrets = st.secrets  # for streamlit deployment
-    GROQ_API_KEY = secrets["GROQ_API_KEY"]
-
-# save the api_key to environment variable
-os.environ["GROQ_API_KEY"] = GROQ_API_KEY
+# ---- Environment Variables ---
+os.environ["GROQ_API_KEY"] = "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"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # Initialize default values
-INITIAL_RESPONSE = secrets.get("INITIAL_RESPONSE", "Hello! How can I assist you?")
+INITIAL_RESPONSE = "Hello! How can I assist you?"
 
 client = Groq()
 
