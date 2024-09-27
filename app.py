@@ -15,7 +15,6 @@ hide_streamlit_style = """
                             visibility: visible;
                             display: block;
                             position: relative;
-                            #background-color: red;
                             padding: 5px;
                             top: 2px;
                         }
@@ -23,11 +22,16 @@ hide_streamlit_style = """
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-# Streamlit page configuration
-st.set_page_config(
-    page_title="Differential Diagnostic Assistant",
-    page_icon="⚕️",
-    layout="centered",
+#Add CSS styling for center alignment
+st.markdown(
+    """
+    <style>
+    .center {
+        text-align: center;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 def parse_groq_stream(stream):
