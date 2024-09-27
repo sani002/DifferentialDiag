@@ -4,6 +4,36 @@ import streamlit as st
 from groq import Groq
 from datetime import datetime
 
+st.image('https://github.com/sani002/mkpapp/blob/main/Header.png?raw=true')
+
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            footer:after {
+                            content:'This app is in its early stage. We recommend you to seek professional advice from a dermatologist. Thank you.'; 
+                            visibility: visible;
+                            display: block;
+                            position: relative;
+                            #background-color: red;
+                            padding: 5px;
+                            top: 2px;
+                        }
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+#Add CSS styling for center alignment
+st.markdown(
+    """
+    <style>
+    .center {
+        text-align: center;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 def parse_groq_stream(stream):
     for chunk in stream:
