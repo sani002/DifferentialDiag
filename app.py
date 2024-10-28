@@ -3,58 +3,35 @@ from dotenv import dotenv_values
 import streamlit as st
 from groq import Groq
 from datetime import datetime
+from pymongo import MongoClient
 
-st.image('https://github.com/sani002/mkpapp/blob/main/Header.png?raw=true')
+# MongoDB connection setup
+MONGO_URI = "mongodb://localhost:27017"  # Replace with actual MongoDB URI if different
+client = MongoClient(MONGO_URI)
+db = client["chat_db"]
+chat_collection = db["chats"]
 
-hide_streamlit_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            footer:after {
-                            content:'This app is in its early stage. We recommend you to seek professional advice from a real doctor. Thank you.'; 
-                            visibility: visible;
-                            display: block;
-                            position: relative;
-                            padding: 5px;
-                            top: 2px;
-                        }
-            </style>
-            """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+# Helper function to save chat history to MongoDB
+def save_chat_history_to_mongodb(chat_data):
+    chat_collection.update_one(
+        {"patient_id": chat_data["patient_id"], "timestamp": chat_data["timestamp"]},
+        {"$set": chat_data},
+        upsert=True
+    )
 
-#Add CSS styling for center alignment
-st.markdown(
-    """
-    <style>
-    .center {
-        text-align: center;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-def parse_groq_stream(stream):
-    for chunk in stream:
-        if chunk.choices:
-            if chunk.choices[0].delta.content is not None:
-                yield chunk.choices[0].delta.content
-
+# Initialize Groq client
+groq_client = Groq()
 
 # ---- Environment Variables ---
-os.environ["GROQ_API_KEY"] = "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"
+os.environ["GROQ_API_KEY"] = "your_groq_api_key"
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# Initialize default values
 INITIAL_RESPONSE = "Hello! How can I assist you?"
 
-client = Groq()
-
-# Initialize the chat history if not already set in the session state
+# ---- Initialize session states ---
 if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [{"role": "assistant", "content": INITIAL_RESPONSE}]
+    st.session_state.chat_history = [{"role": "assistant", "content": INITIAL_RESPONSE, "feedback": None}]
 
-# Initialize patient information if not already set in the session state
 if "patient_info" not in st.session_state:
     st.session_state.patient_info = {}
 
@@ -64,27 +41,27 @@ st.caption("Please fill in the patient details before proceeding.")
 
 # Create a form for patient information
 with st.form("patient_info_form"):
-    if not st.session_state.patient_info:  # Only display the form if patient info is not set
+    if not st.session_state.patient_info:
         name = st.text_input("Patient Name")
         age = st.number_input("Patient Age", min_value=0, max_value=120)
         gender = st.selectbox("Patient Gender", options=["Male", "Female", "Other"])
         location = st.text_input("Patient Location")
         submit_button = st.form_submit_button(label="Submit Details")
 
-        if submit_button:  # Handle submission
-            if name and age and gender and location:  # Validate inputs
-                st.session_state.patient_info = {
-                    "name": name,
-                    "age": age,
-                    "gender": gender,
-                    "location": location,
-                    "date": datetime.today().strftime("%Y-%m-%d")
-                }
-                st.success("Patient details submitted successfully!")  # Provide feedback
-            else:
-                st.error("Please fill in all fields.")  # Error if not all fields are filled
+        if submit_button and name and age and gender and location:
+            patient_info = {
+                "name": name,
+                "age": age,
+                "gender": gender,
+                "location": location,
+                "date": datetime.today().strftime("%Y-%m-%d"),
+                "patient_id": f"{name}_{datetime.now().timestamp()}"  # Unique identifier for the patient
+            }
+            st.session_state.patient_info = patient_info
+            st.success("Patient details submitted successfully!")
+            chat_collection.insert_one({"patient_info": patient_info, "timestamp": datetime.now()})
 
-# Step 2: Display Patient Information
+# Display patient info if available
 if st.session_state.patient_info:
     patient_info = st.session_state.patient_info
     st.write(f"**Name:** {patient_info['name']}")
@@ -93,16 +70,26 @@ if st.session_state.patient_info:
     st.write(f"**Location:** {patient_info['location']}")
     st.write(f"**Date:** {patient_info['date']}")
 
-# Step 3: Display Chat History
+# Step 2: Display Chat History
 st.divider()
-if "chat_history" in st.session_state:
-    for chat in st.session_state.chat_history:
-        role = chat["role"]
-        avatar = "🗨️" if role == "user" else "⚕️"
-        with st.chat_message(role, avatar=avatar):
-            st.markdown(chat["content"])
+for idx, chat in enumerate(st.session_state.chat_history):
+    with st.chat_message(chat["role"], avatar="🦉" if chat["role"] == "user" else "🐦‍⬛"):
+        st.markdown(chat["content"])
 
-# Step 4: Handle User Prompt
+        # Add Like/Dislike buttons for feedback
+        if chat["role"] == "assistant":
+            col1, col2 = st.columns([1, 1])
+            if chat["feedback"] is None:
+                with col1:
+                    if st.button("Like", key=f"like_{idx}"):
+                        st.session_state.chat_history[idx]["feedback"] = "like"
+                        save_chat_history_to_mongodb(st.session_state.chat_history[idx])
+                with col2:
+                    if st.button("Dislike", key=f"dislike_{idx}"):
+                        st.session_state.chat_history[idx]["feedback"] = "dislike"
+                        save_chat_history_to_mongodb(st.session_state.chat_history[idx])
+
+# Step 3: Handle User Prompt
 user_prompt = st.chat_input("Ask me")
 
 if user_prompt and st.session_state.patient_info:
@@ -111,8 +98,10 @@ if user_prompt and st.session_state.patient_info:
         st.markdown(user_prompt)
     
     # Add user message to the chat history
-    st.session_state.chat_history.append({"role": "user", "content": user_prompt})
-    
+    user_data = {"role": "user", "content": user_prompt, "feedback": None, "patient_id": patient_info["patient_id"], "timestamp": datetime.now()}
+    st.session_state.chat_history.append(user_data)
+    save_chat_history_to_mongodb(user_data)
+
     # Generate response using the prompt template
     prompt_template = f"""
     You are a highly skilled, thoughtful and kind doctor preparing to provide the top three possible diagnoses for a patient. You were built with some very complicated algorithms those you don't talk about.
@@ -124,53 +113,31 @@ if user_prompt and st.session_state.patient_info:
     Date: {patient_info['date']}
     User input: {user_prompt}
 
-    After learning the age, gender, location, and user input, you will ask relevant questions (one question at a time) to gather essential information about the chief complaint (up to 5 questions), medical history (up to 5 questions), and review of systems (up to 5 questions). You will ask one question at a time and don't mention the qustion number.
-
-    For each question, ensure the response follows this structure:
-    1. The question should be bold, followed by the guided points, each on a new line and separated by line breaks.
-    2. Do not ask the patient if you should proceed to the next section. Transition naturally between the sections. (one question at a time)
-
-    If the patient asks something unrelated or gives an answer unrelated to the diagnostic questions, kindly acknowledge it and then gently steer the conversation back to the relevant topic without counting the unrelated input as an answer to your previous question.
-
-    For example:
-    - If the patient asks about something unrelated (e.g., "What's the weather like today?"), respond politely (e.g., "Thank you for your question. But I am no trained to answer that. Let's focus on your health for now, and we can address other things later.") and then repeat or follow up on the previous question.
-
-    Example Response Format:
-    **Question:**
-    - Option 1
-    - Option 2
-    - Option 3
-    (REMEMBER ONE QUESTION AT A TIME!!)
-
-    Once all relevant questions have been asked, provide the final diagnosis report without asking the patient for further input.
-
-    After gathering all information, the final diagnosis report should follow this format:
-
-    **Patient Report**
-        Name: {patient_info['name']}       Age: {patient_info['age']}
-        Gender: {patient_info['gender']}    Date: {patient_info['date']}
-        Symptoms: 
-        Previous History: 
-        Top 3 Diagnosis: 
-        Special Notes:    
-
-    Ensure the output is formatted properly for readability in the chat interface.
+    After learning the age, gender, location, and user input, you will ask relevant questions (one question at a time) to gather essential information about the chief complaint (up to 5 questions), medical history (up to 5 questions), and review of systems (up to 5 questions).
     """
 
-    # Use the template and chat history to create the messages for the LLM
     messages = [
-        {"role": "assistant", "content": prompt_template},  # Prompt template is enough
+        {"role": "assistant", "content": prompt_template},
         *st.session_state.chat_history
     ]
 
     # Display assistant's response with streaming
-    with st.chat_message("assistant", avatar='⚕️'):
-        stream = client.chat.completions.create(
+    with st.chat_message("assistant", avatar="🐦‍⬛"):
+        stream = groq_client.chat.completions.create(
             model="llama-3.1-70b-versatile",
             messages=messages,
-            stream=True  # for streaming the message
+            stream=True
         )
-        response = st.write_stream(parse_groq_stream(stream))
+        response_content = ''.join(parse_groq_stream(stream))
+        st.markdown(response_content)
 
-    # Add the assistant's response to the chat history
-    st.session_state.chat_history.append({"role": "assistant", "content": response})
+    # Add assistant's response to chat history and MongoDB
+    assistant_data = {
+        "role": "assistant",
+        "content": response_content,
+        "feedback": None,
+        "patient_id": patient_info["patient_id"],
+        "timestamp": datetime.now()
+    }
+    st.session_state.chat_history.append(assistant_data)
+    save_chat_history_to_mongodb(assistant_data)
