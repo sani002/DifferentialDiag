@@ -13,6 +13,12 @@ client = MongoClient(MONGO_URI)
 db = client["greyfiles_db"]
 chat_collection = db["chat_history"]  # Collection for chat historyimport os
 
+def parse_groq_stream(stream):
+    for chunk in stream:
+        if chunk.choices:
+            if chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
+
 # Helper function to save chat history to MongoDB
 def save_chat_history_to_mongodb(chat_data):
     chat_collection.update_one(
@@ -109,7 +115,7 @@ if user_prompt and st.session_state.patient_info:
         "content": user_prompt,
         "feedback": None,
         "patient_id": patient_info["patient_id"],
-        "timestamp": datetime.now()
+        "timestamp": datetime.now().isoformat()
     }
     st.session_state.chat_history.append(user_data)
     save_chat_history_to_mongodb(user_data)
