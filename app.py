@@ -159,17 +159,16 @@ if user_prompt and st.session_state.patient_info:
 
     After learning the age, gender, location, and user input, you will ask relevant questions (one question at a time).
     """
-    # Use the template and chat history to create the messages for the LLM
-    messages = [
-        {"role": "assistant", "content": prompt_template},
-        *st.session_state.chat_history
+    # Prepare messages for the model by excluding the `feedback` key
+    messages_for_model = [
+        {k: v for k, v in message.items() if k != "feedback"} for message in st.session_state.chat_history
     ]
 
     # Display assistant's response with streaming
     with st.chat_message("assistant", avatar='⚕️'):
         stream = client.chat.completions.create(
             model="llama-3.1-70b-versatile",
-            messages=messages,
+            messages=[{"role": "assistant", "content": prompt_template}] + messages_for_model,
             stream=True  # for streaming the message
         )
         response = st.write_stream(parse_groq_stream(stream))
