@@ -97,7 +97,7 @@ if st.session_state.patient_info:
     st.write(f"**Location:** {patient_info['location']}")
     st.write(f"**Date:** {patient_info['date']}")
 
-# Step 3: Display Chat History with Like/Dislike for Every Reply
+# Step 3: Display Chat History with Like/Dislike for Every Later Reply (Not the Initial One)
 st.divider()
 if "chat_history" in st.session_state:
     for i, chat in enumerate(st.session_state.chat_history):
@@ -107,9 +107,9 @@ if "chat_history" in st.session_state:
         # Display each message with the appropriate role avatar
         with st.chat_message(role, avatar=avatar):
             st.markdown(chat["content"])
-        
-        # Add Like/Dislike buttons for each assistant reply
-        if role == "assistant":
+
+        # Add Like/Dislike buttons only for the assistant responses AFTER the first one
+        if role == "assistant" and i > 0:  # Skip the initial response
             col1, col2 = st.columns(2)  # Two columns for buttons
             
             with col1:
