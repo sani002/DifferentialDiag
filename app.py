@@ -6,6 +6,12 @@ from pymongo import MongoClient  # Added for MongoDB integration
 from datetime import datetime, timedelta
 from streamlit_cookies_manager import EncryptedCookieManager
 
+# Streamlit page configuration
+st.set_page_config(
+    page_title="mLab LLM 0.2",
+    page_icon="⚕️",
+)
+
 # Initialize EncryptedCookieManager with a unique key
 cookies = EncryptedCookieManager(
     prefix="mlab_app_",  # You can set a unique prefix for your app
@@ -14,12 +20,6 @@ cookies = EncryptedCookieManager(
 
 if not cookies.ready():
     st.stop()
-
-# Streamlit page configuration
-st.set_page_config(
-    page_title="mLab LLM 0.2",
-    page_icon="⚕️",
-)
 
 # ---- Hide Streamlit Default Elements ----
 hide_streamlit_style = """
