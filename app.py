@@ -108,21 +108,21 @@ def parse_groq_stream(stream):
 
 # ---- Combined Query Function with Chat History ----
 def combined_query(question, chat_history):
+    # Prepare the initial context
+    messages = [
+        {"role": "system", "content": context},
+    ]
     
-    # Format the chat history for the prompt
-    formatted_chat_history = "\n".join(
-        f"User: {entry['user']}\nAssistant: {entry['response']}" for entry in chat_history
-    )
+    # Add the chat history in message format
+    for entry in chat_history:
+        messages.append({"role": "user", "content": entry["user"]})
+        messages.append({"role": "assistant", "content": entry["response"]})
     
-    # Create the prompt by formatting the template
-    query_prompt = prompt_template.format(
-        context=context,
-        chat_history=formatted_chat_history,
-        question=question
-    )
+    # Append the new user question
+    messages.append({"role": "user", "content": question})
     
-    # Extract and return the response content
-    return query_prompt
+    return messages
+
 
 # ---- Session State Initialization ----
 if "username" not in st.session_state:
