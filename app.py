@@ -35,7 +35,7 @@ db = client["greyfiles_db"]  # Replace with your database name
 collection = db["chat_history"]  # Collection for chat history
 user_collection = db["user_data"]  # Collection for storing user login data
 
-Client = Groq()
+groq_client = Groq()
 
 # Load secrets
 try:
@@ -99,27 +99,21 @@ Pakistan Failure in National Integration
 Author: Rounaq Jahan
 """
 
-from typing import Generator, List, Dict
-
-def parse_groq_stream(stream) -> Generator[str, None, None]:
-    """Parse the stream of chat completion responses."""
+def parse_groq_stream(stream):
     for chunk in stream:
-        # Ensure 'choices' is not empty and check for content
-        if chunk.choices and chunk.choices[0].delta.content is not None:
-            yield chunk.choices[0].delta.content
+        if chunk.choices:
+            if chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
 
 
-def combined_query(question: str, chat_history: List[Dict[str, str]]) -> str:
-    """Combine the user's question with chat history into a prompt."""
+# ---- Combined Query Function with Chat History ----
+def combined_query(question, chat_history):
     
     # Format the chat history for the prompt
-    if chat_history:
-        formatted_chat_history = "\n".join(
-            f"User: {entry['user']}\nAssistant: {entry['response']}" for entry in chat_history
-        )
-    else:
-        formatted_chat_history = ""  # Handle empty chat history case
-
+    formatted_chat_history = "\n".join(
+        f"User: {entry['user']}\nAssistant: {entry['response']}" for entry in chat_history
+    )
+    
     # Create the prompt by formatting the template
     query_prompt = prompt_template.format(
         context=context,
@@ -127,8 +121,8 @@ def combined_query(question: str, chat_history: List[Dict[str, str]]) -> str:
         question=question
     )
     
+    # Extract and return the response content
     return query_prompt
-
 
 # ---- Session State Initialization ----
 if "username" not in st.session_state:
@@ -274,7 +268,7 @@ if st.session_state.logged_in:
 
     # Process the user's question and save only the latest message
     if user_question:
-        stream = client.chat.completions.create(
+        stream = groq_client.chat.completions.create(
             model="llama-3.1-70b-versatile",
             messages=combined_query(user_question, st.session_state.chat_history),
             stream=True  # for streaming the messages
