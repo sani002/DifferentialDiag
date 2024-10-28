@@ -1,3 +1,5 @@
+
+# Import necessary libraries
 import os
 from dotenv import dotenv_values
 import streamlit as st
@@ -9,7 +11,7 @@ from pymongo import MongoClient
 MONGO_URI = "mongodb+srv://smsakeefsani3:DQtEtUakz9fVv6Db@cluster0.bkwpm.mongodb.net/"  # Replace with actual MongoDB URI if different
 client = MongoClient(MONGO_URI)
 db = client["greyfiles_db"]
-chat_collection = db["chat_history"]  # Collection for chat history
+chat_collection = db["chat_history"]  # Collection for chat historyimport os
 
 # Helper function to save chat history to MongoDB
 def save_chat_history_to_mongodb(chat_data):
@@ -73,6 +75,10 @@ if st.session_state.patient_info:
 # Step 2: Display Chat History
 st.divider()
 for idx, chat in enumerate(st.session_state.chat_history):
+    # Ensure each chat has a feedback key to avoid KeyError
+    if "feedback" not in chat:
+        chat["feedback"] = None
+
     with st.chat_message(chat["role"], avatar="🦉" if chat["role"] == "user" else "🐦‍⬛"):
         st.markdown(chat["content"])
 
@@ -97,8 +103,14 @@ if user_prompt and st.session_state.patient_info:
     with st.chat_message("user", avatar="🗨️"):
         st.markdown(user_prompt)
     
-    # Add user message to the chat history
-    user_data = {"role": "user", "content": user_prompt, "feedback": None, "patient_id": patient_info["patient_id"], "timestamp": datetime.now()}
+    # Add user message to the chat history with initialized feedback field
+    user_data = {
+        "role": "user",
+        "content": user_prompt,
+        "feedback": None,
+        "patient_id": patient_info["patient_id"],
+        "timestamp": datetime.now()
+    }
     st.session_state.chat_history.append(user_data)
     save_chat_history_to_mongodb(user_data)
 
@@ -131,7 +143,7 @@ if user_prompt and st.session_state.patient_info:
         response_content = ''.join(parse_groq_stream(stream))
         st.markdown(response_content)
 
-    # Add assistant's response to chat history and MongoDB
+    # Add assistant's response to chat history and MongoDB with initialized feedback
     assistant_data = {
         "role": "assistant",
         "content": response_content,
