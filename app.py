@@ -45,15 +45,6 @@ except:
 # Save the api_key to environment variable
 os.environ["GROQ_API_KEY"] = GROQ_API_KEY
 
-# ---- Chat History and Patient Info Initialization ----
-INITIAL_RESPONSE = "Hello! How can I assist you?"
-
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [{"role": "assistant", "content": INITIAL_RESPONSE}]
-
-if "patient_info" not in st.session_state:
-    st.session_state.patient_info = {}
-
 # ---- Prompt Template ----
 prompt_template = """
 Name: {name}
@@ -166,6 +157,16 @@ def combined_query(question, query_engine, chat_history):
     response = query_engine.query(query_prompt)
     return response
 
+# ---- Chat History and Patient Info Initialization ----
+INITIAL_RESPONSE = "Hello! How can I assist you?"
+
+if "chat_history" not in st.session_state:
+    # Initialize chat_history with the assistant's initial response correctly structured
+    st.session_state.chat_history = [{"user": None, "response": INITIAL_RESPONSE}]
+
+if "patient_info" not in st.session_state:
+    st.session_state.patient_info = {}
+
 # ---- Chat Input and Display ----
 user_question = st.chat_input("Please describe your main complaint or ask a question:")
 
@@ -179,12 +180,15 @@ if user_question:
     st.session_state.chat_history.append(latest_entry)
     save_chat_history_to_mongodb(latest_entry)
 
+# ---- Display Chat History ----
 for idx, chat in enumerate(st.session_state.chat_history):
-    with st.chat_message("user", avatar="🩺"):
-        st.markdown(chat["user"])
+    if chat["user"]:  # Only display "user" chat if there is user input
+        with st.chat_message("user", avatar="🩺"):
+            st.markdown(chat["user"])
     with st.chat_message("assistant", avatar="🤖"):
         st.markdown(chat["response"])
 
+        # Feedback buttons
         col1, col2 = st.columns([1, 1])
         if chat["feedback"] is None:
             with col1:
@@ -195,3 +199,4 @@ for idx, chat in enumerate(st.session_state.chat_history):
                 if st.button("Dislike", key=f"dislike_{idx}"):
                     st.session_state.chat_history[idx]["feedback"] = "dislike"
                     save_chat_history_to_mongodb(st.session_state.chat_history[idx])
+
