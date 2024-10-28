@@ -45,6 +45,13 @@ except:
 # Save the api_key to environment variable
 os.environ["GROQ_API_KEY"] = GROQ_API_KEY
 
+# ---- Chat History and Patient Info Initialization ----
+INITIAL_RESPONSE = "Hello! How can I assist you?"
+
+# Initialize chat history and patient info in session state
+st.session_state.setdefault("chat_history", [{"user": None, "response": INITIAL_RESPONSE}])
+st.session_state.setdefault("patient_info", {})
+
 # ---- Prompt Template ----
 prompt_template = """
 Name: {name}
@@ -63,9 +70,6 @@ For each question, ensure the response follows this structure:
 2. Do not ask the patient if you should proceed to the next section. Transition naturally between the sections. (one question at a time)
 
 If the patient asks something unrelated or gives an answer unrelated to the diagnostic questions, kindly acknowledge it and then gently steer the conversation back to the relevant topic without counting the unrelated input as an answer to your previous question.
-
-For example:
-- If the patient asks about something unrelated (e.g., "What's the weather like today?"), respond politely (e.g., "Thank you for your question. But I am not trained to answer that. Let's focus on your health for now, and we can address other things later.") and then repeat or follow up on the previous question.
 
 Example Response Format:
 **Question:**
@@ -89,8 +93,11 @@ After gathering all information, the final diagnosis report should follow this f
 Ensure the output is formatted properly for readability in the chat interface.
 """
 
+# Context for the query engine
 context = """You are a highly skilled, thoughtful, and kind doctor preparing to provide the top three possible diagnoses for a patient. You were built with some very complicated algorithms those you don't talk about.
 """
+
+# Remaining code continues as before
 
 # ---- Patient Information Form ----
 with st.form("patient_info_form"):
@@ -156,16 +163,6 @@ def combined_query(question, query_engine, chat_history):
     
     response = query_engine.query(query_prompt)
     return response
-
-# ---- Chat History and Patient Info Initialization ----
-INITIAL_RESPONSE = "Hello! How can I assist you?"
-
-if "chat_history" not in st.session_state:
-    # Initialize chat_history with the assistant's initial response correctly structured
-    st.session_state.chat_history = [{"user": None, "response": INITIAL_RESPONSE}]
-
-if "patient_info" not in st.session_state:
-    st.session_state.patient_info = {}
 
 # ---- Chat Input and Display ----
 user_question = st.chat_input("Please describe your main complaint or ask a question:")
