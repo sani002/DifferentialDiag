@@ -35,8 +35,6 @@ db = client["mLab_App"]  # Replace with your database name
 collection = db["chat_history"]  # Collection for chat history
 user_collection = db["user_data"]  # Collection for storing user login data
 
-groq_client = Groq()
-
 # Load secrets
 try:
     secrets = dotenv_values(".env")  # for dev env
@@ -47,6 +45,8 @@ except:
 
 # Save the api_key to environment variable
 os.environ["GROQ_API_KEY"] = GROQ_API_KEY
+
+groq_client = Groq()
 
 # Modify this function to save a single entry at a time
 def save_chat_history_to_mongodb(entry):
