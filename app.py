@@ -100,22 +100,14 @@ Author: Rounaq Jahan
 """
 
 def parse_groq_stream(stream):
-    # Iterate through the chunks in the stream
     for chunk in stream:
-        print(chunk)  # Debug: Print the chunk to see its structure
-
-        # Assuming chunk is a tuple; adjust based on its actual structure
-        if isinstance(chunk, tuple) and len(chunk) > 0:
-            # Unpack the tuple if it contains necessary information
-            choice_data = chunk[0]  # This assumes that the first item is the expected object
-            
-            if hasattr(choice_data, 'choices') and choice_data.choices:
-                if hasattr(choice_data.choices[0], 'delta') and choice_data.choices[0].delta.content is not None:
-                    yield choice_data.choices[0].delta.content
+        if chunk.choices:
+            if chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
 
 
 # ---- Combined Query Function with Chat History ----
-def combined_query(question, client, chat_history):
+def combined_query(question, chat_history):
     
     # Format the chat history for the prompt
     formatted_chat_history = "\n".join(
@@ -129,18 +121,8 @@ def combined_query(question, client, chat_history):
         question=question
     )
     
-    # Use the client to generate a completion using the chat model
-    stream = client.chat.completions.create(
-        model="llama-3.1-70b-versatile",  # Example model name
-        messages=[{"role": "user", "content": query_prompt}],
-        stream=True  # Ensure that streaming is enabled
-    )
-
-    # Use write_stream to output the streaming response
-    response_content = ''.join(parse_groq_stream(stream))
-    
-    return response_content
-
+    # Extract and return the response content
+    return query_prompt
 
 # ---- Session State Initialization ----
 if "username" not in st.session_state:
@@ -286,8 +268,12 @@ if st.session_state.logged_in:
 
     # Process the user's question and save only the latest message
     if user_question:
-        response = combined_query(user_question, Client, st.session_state.chat_history)
-        
+        stream = client.chat.completions.create(
+            model="llama-3.1-70b-versatile",
+            messages=combined_query(user_question, st.session_state.chat_history),
+            stream=True  # for streaming the messages
+        )
+        response = st.write_stream(parse_groq_stream(stream))
         # Append question and response to the chat history
         latest_entry = {
             "user": user_question,
