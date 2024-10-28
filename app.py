@@ -268,7 +268,9 @@ if st.session_state.logged_in:
             
             # Mark patient info as collected to skip this form in future
             st.session_state.patient_info_collected = True
-            st.success("Patient information saved! You may now proceed with your questions.")
+            # Acknowledge data collection without additional success message under the chat
+            st.write("Patient information collected! You may proceed with your questions in the chat.")
+
 
     st.sidebar.title("Account Options")
     if st.sidebar.button("Log Out"):
