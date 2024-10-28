@@ -112,11 +112,11 @@ if "chat_history" in st.session_state:
             with col1:
                 if st.button("👍", key=f"like_{i}"):
                     st.session_state.feedback.append({"message_index": i, "feedback": "like"})
-                    st.success("You liked this response")
+                    st.success(f"You liked response {i+1}")
             with col2:
                 if st.button("👎", key=f"dislike_{i}"):
                     st.session_state.feedback.append({"message_index": i, "feedback": "dislike"})
-                    st.error("You disliked this response")
+                    st.error(f"You disliked response {i+1}")
 
 # Step 4: Handle User Prompt
 user_prompt = st.chat_input("Ask me")
