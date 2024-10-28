@@ -318,11 +318,14 @@ if st.session_state.logged_in:
             messages=combined_query(user_question, st.session_state.chat_history),
             stream=True  # for streaming the messages
         )
-        response = st.write_stream(parse_groq_stream(stream))
+        
+        # Collect response from stream
+        response = ''.join([chunk for chunk in parse_groq_stream(stream)])
+
         # Append question and response to the chat history
         latest_entry = {
             "user": user_question,
-            "response": str(response),
+            "response": response,
             "feedback": None  # Placeholder for feedback
         }
         st.session_state.chat_history.append(latest_entry)
