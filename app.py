@@ -3,23 +3,13 @@ import os
 import streamlit as st
 from groq import Groq
 from pymongo import MongoClient  # Added for MongoDB integration
-from datetime import datetime, timedelta
-from streamlit_cookies_manager import EncryptedCookieManager
+from datetime import datetime
 
 # Streamlit page configuration
 st.set_page_config(
     page_title="mLab LLM 0.2",
     page_icon="⚕️",
 )
-
-# Initialize EncryptedCookieManager with a unique key
-cookies = EncryptedCookieManager(
-    prefix="mlab_app_",  # You can set a unique prefix for your app
-    password="supersecretpassword"  # Use a strong, secret password here
-)
-
-if not cookies.ready():
-    st.stop()
 
 # ---- Hide Streamlit Default Elements ----
 hide_streamlit_style = """
@@ -197,26 +187,11 @@ def user_logout():
     st.session_state.username = ""
     st.session_state.logged_in = False
     st.session_state.form = "login_form"  # Reset to login form
-    cookies.delete("session")
-    cookies.save()
 
 @st.cache_data
 def validate_user(username, password):
     """Cached function to validate user credentials with the database."""
     return user_collection.find_one({'username': username, 'password': password})
-
-# ---- Session Initialization ----
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "username" not in st.session_state:
-    st.session_state.username = ""
-
-# Check for session cookie and auto-login if valid
-cookies.load()
-session_cookie = cookies.get("session")
-if session_cookie and not st.session_state.logged_in:
-    st.session_state.username = session_cookie["username"]
-    st.session_state.logged_in = True
 
 # ---- Login and Signup Interface ----
 if not st.session_state.logged_in:
@@ -231,22 +206,14 @@ if not st.session_state.logged_in:
         password = login_form.text_input(label='Password', type='password')
         login_button = login_form.form_submit_button(label='Sign In')
         
-    if login_button:
-        user_data = validate_user(username, password)
-        if user_data:
-            # Successful login
-            user_update(username)
-            st.success(f"Welcome, {username}!")
-
-            # Store session info in an encrypted cookie
-            cookies.set(
-                "session",
-                {"username": username},
-                expires_at=datetime.now() + timedelta(days=7)  # Set cookie expiration
-            )
-            cookies.save()
-        else:
-            st.error("Invalid username or password. Please try again.")
+        # Login button functionality
+        if login_button:
+            user_data = validate_user(username, password)
+            if user_data:
+                user_update(username)
+                st.success(f"Welcome, {username}!")  # Successful login message
+            else:
+                st.error("Invalid username or password. Please try again.")
 
         # Button to switch to Signup form
         st.markdown("Don't have an account?")
