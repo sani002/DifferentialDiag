@@ -67,36 +67,42 @@ def save_chat_history_to_mongodb(entry):
 
 # ---- Prompt Template ----
 prompt_template = """
-Use the following pieces of information to answer the user's question.
-Give all possible answers from all the books regarding that question. If not found in your training books, answer from your pretained data.
-Must mention the book or source and page number with each answer.
 
 Context: {context}
 Chat History: {chat_history}
 Question: {question}
 
-Answer concisely and provide additional helpful insights if applicable.
+After learning the age, gender, location, and user input, you will ask relevant questions (one question at a time) to gather essential information about the chief complaint (up to 5 questions), medical history (up to 5 questions), and review of systems (up to 5 questions). You will ask one question at a time and don't mention the qustion number.
+
+For each question, ensure the response follows this structure:
+1. The question should be bold, followed by the guided points, each on a new line and separated by line breaks.
+2. Do not ask the patient if you should proceed to the next section. Transition naturally between the sections. (one question at a time)
+
+Example Response Format:
+**Question:**
+- Option 1
+- Option 2
+- Option 3
+(REMEMBER ONE QUESTION AT A TIME!!)
+
+Once all relevant questions have been asked, provide the final diagnosis report without asking the patient for further input.
+
+After gathering all information, the final diagnosis report should follow this format:
+
+**Patient Report**
+    Name: {patient_info['name']}       Age: {patient_info['age']}
+    Gender: {patient_info['gender']}    Date: {patient_info['date']}
+    Symptoms: 
+    Previous History: 
+    Top 3 Diagnosis: 
+    Special Notes:    
+
+Ensure the output is formatted properly for readability in the chat interface.
 """
-
-context = """You are trained on these books on historical events, relations, and key dates regarding Bangladesh:
-
-Bangladesh: A Legacy of Blood
-Author: Anthony Mascarenhas
-
-The Blood Telegram: Nixon, Kissinger, and a Forgotten Genocide
-Author: Gary J. Bass
-
-Liberation War Debates in the UK Parliament
-Author: UK Parliament
-
-The Cruel Birth of Bangladesh Through the Eyes of America
-Author: Adit Mahmood
-
-The Rape of Bangladesh
-Author: ANTHONY MASCARENHAS
-
-Pakistan Failure in National Integration
-Author: Rounaq Jahan
+context = """You are a highly skilled, thoughtful and kind doctor preparing to provide the top three possible diagnoses for a patient. You were built with some very complicated algorithms those you don't talk about.
+If the patient asks something unrelated or gives an answer unrelated to the diagnostic questions, kindly acknowledge it and then gently steer the conversation back to the relevant topic without counting the unrelated input as an answer to your previous question.
+For example:
+- If the patient asks about something unrelated (e.g., "What's the weather like today?"), respond politely (e.g., "Thank you for your question. But I am no trained to answer that. Let's focus on your health for now, and we can address other things later.") and then repeat or follow up on the previous question.
 """
 
 def parse_groq_stream(stream):
@@ -226,6 +232,44 @@ if not st.session_state.logged_in:
 
 # ---- Main App Content (only for logged-in users) ----
 if st.session_state.logged_in:
+    # ---- Initial User Information Collection Form ----
+    if st.session_state.logged_in and "patient_info_collected" not in st.session_state:
+        st.subheader("Please fill in your health profile to begin")
+
+        # Collect patient info
+        with st.form("patient_info_form"):
+            age = st.number_input("Age", min_value=1, max_value=120, step=1)
+            gender = st.selectbox("Gender", ["Male", "Female", "Other"])
+            smoking_habit = st.selectbox("Smoking Habit", ["No", "Yes"])
+            diabetes_status = st.selectbox("Diabetes", ["No", "Type 1", "Type 2"])
+
+            submit_patient_info = st.form_submit_button("Submit")
+
+        if submit_patient_info:
+            # Create a patient info entry and add it to chat history
+            patient_info = {
+                "age": age,
+                "gender": gender,
+                "smoking_habit": smoking_habit,
+                "diabetes_status": diabetes_status,
+                "timestamp": datetime.now().isoformat()
+            }
+
+            # Save to session state and database
+            st.session_state.chat_history.insert(0, {
+                "user": "Patient Information",
+                "response": f"Age: {age}, Gender: {gender}, Smoking Habit: {smoking_habit}, Diabetes: {diabetes_status}",
+                "feedback": None,
+                "timestamp": patient_info["timestamp"]
+            })
+            
+            # Save patient information to MongoDB
+            save_chat_history_to_mongodb(st.session_state.chat_history[0])
+            
+            # Mark patient info as collected to skip this form in future
+            st.session_state.patient_info_collected = True
+            st.success("Patient information saved! You may now proceed with your questions.")
+
     st.sidebar.title("Account Options")
     if st.sidebar.button("Log Out"):
         user_logout()  # Call function to log out and reset state
