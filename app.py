@@ -1,5 +1,3 @@
-
-# Import necessary libraries
 import os
 from dotenv import dotenv_values
 import streamlit as st
@@ -7,11 +5,35 @@ from groq import Groq
 from datetime import datetime
 from pymongo import MongoClient
 
-# MongoDB connection setup
-MONGO_URI = "mongodb+srv://smsakeefsani3:DQtEtUakz9fVv6Db@cluster0.bkwpm.mongodb.net/"  # Replace with actual MongoDB URI if different
-client = MongoClient(MONGO_URI)
-db = client["greyfiles_db"]
-chat_collection = db["chat_history"]  # Collection for chat historyimport os
+st.image('https://github.com/sani002/mkpapp/blob/main/Header.png?raw=true')
+
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            footer:after {
+                            content:'This app is in its early stage. We recommend you to seek professional advice from a real doctor. Thank you.'; 
+                            visibility: visible;
+                            display: block;
+                            position: relative;
+                            padding: 5px;
+                            top: 2px;
+                        }
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+# Add CSS styling for center alignment
+st.markdown(
+    """
+    <style>
+    .center {
+        text-align: center;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 def parse_groq_stream(stream):
     for chunk in stream:
@@ -19,27 +41,30 @@ def parse_groq_stream(stream):
             if chunk.choices[0].delta.content is not None:
                 yield chunk.choices[0].delta.content
 
-# Helper function to save chat history to MongoDB
-def save_chat_history_to_mongodb(chat_data):
-    chat_collection.update_one(
-        {"patient_id": chat_data["patient_id"], "timestamp": chat_data["timestamp"]},
-        {"$set": chat_data},
-        upsert=True
-    )
-
-# Initialize Groq client
-groq_client = Groq()
-
 # ---- Environment Variables ---
-os.environ["GROQ_API_KEY"] = "your_groq_api_key"
+os.environ["GROQ_API_KEY"] = "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"
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+# MongoDB Atlas Connection
+MONGO_URI = "mongodb+srv://smsakeefsani3:DQtEtUakz9fVv6Db@cluster0.bkwpm.mongodb.net/"
+client = MongoClient(MONGO_URI)
+db = client["greyfiles_db"]  # Replace with your database name
+collection = db["chat_history"]  # Collection for chat history
+
+# Save chat history entry to MongoDB
+def save_chat_history_to_mongodb(entry):
+    collection.insert_one(entry)
+
+# Initialize default values
 INITIAL_RESPONSE = "Hello! How can I assist you?"
 
-# ---- Initialize session states ---
+client = Groq()
+
+# Initialize the chat history if not already set in the session state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [{"role": "assistant", "content": INITIAL_RESPONSE, "feedback": None}]
 
+# Initialize patient information if not already set in the session state
 if "patient_info" not in st.session_state:
     st.session_state.patient_info = {}
 
@@ -49,27 +74,27 @@ st.caption("Please fill in the patient details before proceeding.")
 
 # Create a form for patient information
 with st.form("patient_info_form"):
-    if not st.session_state.patient_info:
+    if not st.session_state.patient_info:  # Only display the form if patient info is not set
         name = st.text_input("Patient Name")
         age = st.number_input("Patient Age", min_value=0, max_value=120)
         gender = st.selectbox("Patient Gender", options=["Male", "Female", "Other"])
         location = st.text_input("Patient Location")
         submit_button = st.form_submit_button(label="Submit Details")
 
-        if submit_button and name and age and gender and location:
-            patient_info = {
-                "name": name,
-                "age": age,
-                "gender": gender,
-                "location": location,
-                "date": datetime.today().strftime("%Y-%m-%d"),
-                "patient_id": f"{name}_{datetime.now().timestamp()}"  # Unique identifier for the patient
-            }
-            st.session_state.patient_info = patient_info
-            st.success("Patient details submitted successfully!")
-            chat_collection.insert_one({"patient_info": patient_info, "timestamp": datetime.now()})
+        if submit_button:  # Handle submission
+            if name and age and gender and location:  # Validate inputs
+                st.session_state.patient_info = {
+                    "name": name,
+                    "age": age,
+                    "gender": gender,
+                    "location": location,
+                    "date": datetime.today().strftime("%Y-%m-%d")
+                }
+                st.success("Patient details submitted successfully!")  # Provide feedback
+            else:
+                st.error("Please fill in all fields.")  # Error if not all fields are filled
 
-# Display patient info if available
+# Step 2: Display Patient Information
 if st.session_state.patient_info:
     patient_info = st.session_state.patient_info
     st.write(f"**Name:** {patient_info['name']}")
@@ -78,30 +103,39 @@ if st.session_state.patient_info:
     st.write(f"**Location:** {patient_info['location']}")
     st.write(f"**Date:** {patient_info['date']}")
 
-# Step 2: Display Chat History
+# Step 3: Display Chat History
 st.divider()
 for idx, chat in enumerate(st.session_state.chat_history):
-    # Ensure each chat has a feedback key to avoid KeyError
-    if "feedback" not in chat:
-        chat["feedback"] = None
-
-    with st.chat_message(chat["role"], avatar="🦉" if chat["role"] == "user" else "🐦‍⬛"):
+    role = chat["role"]
+    avatar = "🗨️" if role == "user" else "⚕️"
+    with st.chat_message(role, avatar=avatar):
         st.markdown(chat["content"])
 
-        # Add Like/Dislike buttons for feedback
-        if chat["role"] == "assistant":
-            col1, col2 = st.columns([1, 1])
-            if chat["feedback"] is None:
-                with col1:
-                    if st.button("Like", key=f"like_{idx}"):
-                        st.session_state.chat_history[idx]["feedback"] = "like"
-                        save_chat_history_to_mongodb(st.session_state.chat_history[idx])
-                with col2:
-                    if st.button("Dislike", key=f"dislike_{idx}"):
-                        st.session_state.chat_history[idx]["feedback"] = "dislike"
-                        save_chat_history_to_mongodb(st.session_state.chat_history[idx])
+    # Add Like/Dislike buttons for feedback
+    if chat["feedback"] is None:  # Only show buttons if no feedback yet
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("Like", key=f"like_{idx}"):
+                st.session_state.chat_history[idx]["feedback"] = "like"
+                latest_entry = {
+                    "user": st.session_state.chat_history[idx - 1]["content"] if idx > 0 else None,
+                    "response": str(chat["content"]),
+                    "feedback": "like",
+                    "patient_info": st.session_state.patient_info
+                }
+                save_chat_history_to_mongodb(latest_entry)
+        with col2:
+            if st.button("Dislike", key=f"dislike_{idx}"):
+                st.session_state.chat_history[idx]["feedback"] = "dislike"
+                latest_entry = {
+                    "user": st.session_state.chat_history[idx - 1]["content"] if idx > 0 else None,
+                    "response": str(chat["content"]),
+                    "feedback": "dislike",
+                    "patient_info": st.session_state.patient_info
+                }
+                save_chat_history_to_mongodb(latest_entry)
 
-# Step 3: Handle User Prompt
+# Step 4: Handle User Prompt
 user_prompt = st.chat_input("Ask me")
 
 if user_prompt and st.session_state.patient_info:
@@ -109,21 +143,13 @@ if user_prompt and st.session_state.patient_info:
     with st.chat_message("user", avatar="🗨️"):
         st.markdown(user_prompt)
     
-    # Add user message to the chat history with initialized feedback field
-    user_data = {
-        "role": "user",
-        "content": user_prompt,
-        "feedback": None,
-        "patient_id": patient_info["patient_id"],
-        "timestamp": datetime.now().isoformat()
-    }
-    st.session_state.chat_history.append(user_data)
-    save_chat_history_to_mongodb(user_data)
-
+    # Add user message to the chat history
+    st.session_state.chat_history.append({"role": "user", "content": user_prompt, "feedback": None})
+    
     # Generate response using the prompt template
     prompt_template = f"""
-    You are a highly skilled, thoughtful and kind doctor preparing to provide the top three possible diagnoses for a patient. You were built with some very complicated algorithms those you don't talk about.
-
+    You are a highly skilled, thoughtful and kind doctor preparing to provide the top three possible diagnoses for a patient.
+    
     Name: {patient_info['name']}
     Age: {patient_info['age']}
     Gender: {patient_info['gender']}
@@ -131,31 +157,22 @@ if user_prompt and st.session_state.patient_info:
     Date: {patient_info['date']}
     User input: {user_prompt}
 
-    After learning the age, gender, location, and user input, you will ask relevant questions (one question at a time) to gather essential information about the chief complaint (up to 5 questions), medical history (up to 5 questions), and review of systems (up to 5 questions).
+    After learning the age, gender, location, and user input, you will ask relevant questions (one question at a time).
     """
-
+    # Use the template and chat history to create the messages for the LLM
     messages = [
         {"role": "assistant", "content": prompt_template},
         *st.session_state.chat_history
     ]
 
     # Display assistant's response with streaming
-    with st.chat_message("assistant", avatar="🐦‍⬛"):
-        stream = groq_client.chat.completions.create(
+    with st.chat_message("assistant", avatar='⚕️'):
+        stream = client.chat.completions.create(
             model="llama-3.1-70b-versatile",
             messages=messages,
-            stream=True
+            stream=True  # for streaming the message
         )
-        response_content = ''.join(parse_groq_stream(stream))
-        st.markdown(response_content)
+        response = st.write_stream(parse_groq_stream(stream))
 
-    # Add assistant's response to chat history and MongoDB with initialized feedback
-    assistant_data = {
-        "role": "assistant",
-        "content": response_content,
-        "feedback": None,
-        "patient_id": patient_info["patient_id"],
-        "timestamp": datetime.now()
-    }
-    st.session_state.chat_history.append(assistant_data)
-    save_chat_history_to_mongodb(assistant_data)
+    # Add the assistant's response to the chat history
+    st.session_state.chat_history.append({"role": "assistant", "content": response, "feedback": None})
