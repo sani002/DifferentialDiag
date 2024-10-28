@@ -6,10 +6,10 @@ from datetime import datetime
 from pymongo import MongoClient
 
 # MongoDB connection setup
-MONGO_URI = "mongodb://localhost:27017"  # Replace with actual MongoDB URI if different
+MONGO_URI = "mongodb+srv://smsakeefsani3:DQtEtUakz9fVv6Db@cluster0.bkwpm.mongodb.net/"  # Replace with actual MongoDB URI if different
 client = MongoClient(MONGO_URI)
-db = client["chat_db"]
-chat_collection = db["chats"]
+db = client["greyfiles_db"]
+chat_collection = db["chat_history"]  # Collection for chat history
 
 # Helper function to save chat history to MongoDB
 def save_chat_history_to_mongodb(chat_data):
