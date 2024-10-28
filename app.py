@@ -56,11 +56,11 @@ if "patient_info" not in st.session_state:
 
 # ---- Prompt Template ----
 prompt_template = """
-Name: {st.session_state.patient_info['name']}
-Age: {st.session_state.patient_info['age']}
-Gender: {st.session_state.patient_info['gender']}
-Location: {st.session_state.patient_info['location']}
-Date: {st.session_state.patient_info['date']}
+Name: {name}
+Age: {age}
+Gender: {gender}
+Location: {location}
+Date: {date}
 Context: {context}
 Chat History: {chat_history}
 Question: {question}
@@ -88,8 +88,8 @@ Once all relevant questions have been asked, provide the final diagnosis report 
 After gathering all information, the final diagnosis report should follow this format:
 
 **Patient Report**
-    Name: {st.session_state.patient_info['name']}       Age: {st.session_state.patient_info['age']}
-    Gender: {st.session_state.patient_info['gender']}    Date: {st.session_state.patient_info['date']}
+    Name: {name}       Age: {age}
+    Gender: {gender}    Date: {date}
     Symptoms: 
     Previous History: 
     Top 3 Diagnosis: 
@@ -97,7 +97,6 @@ After gathering all information, the final diagnosis report should follow this f
 
 Ensure the output is formatted properly for readability in the chat interface.
 """
-
 
 context = """You are a highly skilled, thoughtful, and kind doctor preparing to provide the top three possible diagnoses for a patient. You were built with some very complicated algorithms those you don't talk about.
 """
@@ -156,7 +155,11 @@ def combined_query(question, query_engine, chat_history):
     query_prompt = prompt_template.format(
         context=context,
         chat_history=formatted_chat_history,
-        patient_info=st.session_state.patient_info,
+        name=st.session_state.patient_info['name'],
+        age=st.session_state.patient_info['age'],
+        gender=st.session_state.patient_info['gender'],
+        location=st.session_state.patient_info['location'],
+        date=st.session_state.patient_info['date'],
         question=question
     )
     
