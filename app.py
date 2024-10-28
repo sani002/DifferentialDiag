@@ -99,6 +99,12 @@ Pakistan Failure in National Integration
 Author: Rounaq Jahan
 """
 
+def parse_groq_stream(stream):
+    for chunk in stream:
+        if chunk.choices:
+            if chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
+
 # ---- Combined Query Function with Chat History ----
 def combined_query(question, client, chat_history):
     
@@ -115,10 +121,12 @@ def combined_query(question, client, chat_history):
     )
     
     # Use the client to generate a completion using the chat model
-    response = client.chat.completions.create(
+    stream = client.chat.completions.create(
         model="llama-3.1-70b-versatile",  # Example model name
         messages=[{"role": "user", "content": query_prompt}]
     )
+
+    response = st.write_stream(parse_groq_stream(stream))
     
     # Extract and return the response content
     return response['choices'][0]['message']['content']
