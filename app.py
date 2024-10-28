@@ -1,7 +1,7 @@
 from dotenv import dotenv_values
 import os
 import streamlit as st
-from llama_index.llms.groq import Groq
+from groq import Groq
 from pymongo import MongoClient  # Added for MongoDB integration
 from datetime import datetime
 
@@ -35,7 +35,7 @@ db = client["greyfiles_db"]  # Replace with your database name
 collection = db["chat_history"]  # Collection for chat history
 user_collection = db["user_data"]  # Collection for storing user login data
 
-Client = Groq(model="llama-3.1-70b-versatile")
+Client = Groq()
 
 # Load secrets
 try:
