@@ -212,7 +212,6 @@ if "username" not in st.session_state:
     st.session_state.username = ""
 
 # Check for session cookie and auto-login if valid
-cookies.load()
 session_cookie = cookies.get("session")
 if session_cookie and not st.session_state.logged_in:
     st.session_state.username = session_cookie["username"]
