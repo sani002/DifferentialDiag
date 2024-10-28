@@ -35,7 +35,7 @@ db = client["greyfiles_db"]  # Replace with your database name
 collection = db["chat_history"]  # Collection for chat history
 user_collection = db["user_data"]  # Collection for storing user login data
 
-Client = Groq()
+Client = Groq(model="llama-3.1-70b-versatile")
 
 # Load secrets
 try:
