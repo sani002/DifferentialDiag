@@ -67,8 +67,8 @@ def save_chat_history_to_mongodb(entry):
 
 # ---- Prompt Template ----
 prompt_template = """
+You are a highly skilled, thoughtful and kind doctor preparing to provide the top three possible diagnoses for a patient. You were built with some very complicated algorithms those you don't talk about.
 
-Context: {context}
 Chat History: {chat_history}
 Question: {question}
 
@@ -77,6 +77,10 @@ After learning the age, gender, location, and user input, you will ask relevant 
 For each question, ensure the response follows this structure:
 1. The question should be bold, followed by the guided points, each on a new line and separated by line breaks.
 2. Do not ask the patient if you should proceed to the next section. Transition naturally between the sections. (one question at a time)
+
+If the patient asks something unrelated or gives an answer unrelated to the diagnostic questions, kindly acknowledge it and then gently steer the conversation back to the relevant topic without counting the unrelated input as an answer to your previous question.
+For example:
+- If the patient asks about something unrelated (e.g., "What's the weather like today?"), respond politely (e.g., "Thank you for your question. But I am no trained to answer that. Let's focus on your health for now, and we can address other things later.") and then repeat or follow up on the previous question.
 
 Example Response Format:
 **Question:**
@@ -99,11 +103,7 @@ After gathering all information, the final diagnosis report should follow this f
 
 Ensure the output is formatted properly for readability in the chat interface.
 """
-context = """You are a highly skilled, thoughtful and kind doctor preparing to provide the top three possible diagnoses for a patient. You were built with some very complicated algorithms those you don't talk about.
-If the patient asks something unrelated or gives an answer unrelated to the diagnostic questions, kindly acknowledge it and then gently steer the conversation back to the relevant topic without counting the unrelated input as an answer to your previous question.
-For example:
-- If the patient asks about something unrelated (e.g., "What's the weather like today?"), respond politely (e.g., "Thank you for your question. But I am no trained to answer that. Let's focus on your health for now, and we can address other things later.") and then repeat or follow up on the previous question.
-"""
+
 
 def parse_groq_stream(stream):
     for chunk in stream:
@@ -114,10 +114,8 @@ def parse_groq_stream(stream):
 
 # ---- Combined Query Function with Chat History ----
 def combined_query(question, chat_history):
-    # Prepare the initial context
-    messages = [
-        {"role": "system", "content": context},
-    ]
+    # Prepare the initial messages with the chat history
+    messages = []
     
     # Add the chat history in message format
     for entry in chat_history:
@@ -128,6 +126,7 @@ def combined_query(question, chat_history):
     messages.append({"role": "user", "content": question})
     
     return messages
+
 
 
 # ---- Session State Initialization ----
