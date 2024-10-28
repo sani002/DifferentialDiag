@@ -54,9 +54,9 @@ client = Groq()
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [{"role": "assistant", "content": INITIAL_RESPONSE}]
 
-# Initialize feedback history
+# Initialize feedback history if not already set
 if "feedback" not in st.session_state:
-    st.session_state.feedback = []
+    st.session_state.feedback = {}
 
 # Initialize patient information if not already set in the session state
 if "patient_info" not in st.session_state:
@@ -97,26 +97,30 @@ if st.session_state.patient_info:
     st.write(f"**Location:** {patient_info['location']}")
     st.write(f"**Date:** {patient_info['date']}")
 
-# Step 3: Display Chat History
+# Step 3: Display Chat History with Like/Dislike for Every Reply
 st.divider()
 if "chat_history" in st.session_state:
     for i, chat in enumerate(st.session_state.chat_history):
         role = chat["role"]
         avatar = "🗨️" if role == "user" else "⚕️"
+        
+        # Display each message with the appropriate role avatar
         with st.chat_message(role, avatar=avatar):
             st.markdown(chat["content"])
-
-        # Show "like" and "dislike" buttons for each assistant message
+        
+        # Add Like/Dislike buttons for each assistant reply
         if role == "assistant":
-            col1, col2 = st.columns([1, 1])  # Create two equal columns for buttons
+            col1, col2 = st.columns(2)  # Two columns for buttons
+            
             with col1:
-                if st.button("👍", key=f"like_{i}"):
-                    st.session_state.feedback.append({"message_index": i, "feedback": "like"})
-                    st.success(f"You liked response {i+1}")
+                if st.button("👍 Like", key=f"like_{i}"):
+                    st.session_state.feedback[f"like_{i}"] = "like"
+                    st.success(f"Response {i + 1}: Liked!")
+                    
             with col2:
-                if st.button("👎", key=f"dislike_{i}"):
-                    st.session_state.feedback.append({"message_index": i, "feedback": "dislike"})
-                    st.error(f"You disliked response {i+1}")
+                if st.button("👎 Dislike", key=f"dislike_{i}"):
+                    st.session_state.feedback[f"dislike_{i}"] = "dislike"
+                    st.error(f"Response {i + 1}: Disliked!")
 
 # Step 4: Handle User Prompt
 user_prompt = st.chat_input("Ask me")
