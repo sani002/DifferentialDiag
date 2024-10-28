@@ -7,8 +7,8 @@ from datetime import datetime
 
 # Streamlit page configuration
 st.set_page_config(
-    page_title="Grey Files 0.2",
-    page_icon="🐦‍⬛",
+    page_title="mLab LLM 0.2",
+    page_icon="⚕️",
 )
 
 # ---- Hide Streamlit Default Elements ----
@@ -17,7 +17,7 @@ hide_streamlit_style = """
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     footer:after {
-                    content:'This app provides answers based on documents regarding Bangladesh history.'; 
+                    content:'This app is in its early stage. We recommend you to seek professional advice from a real doctor. Thank you.'; 
                     visibility: visible;
                     display: block;
                     position: relative;
@@ -163,8 +163,8 @@ def validate_user(username, password):
 if not st.session_state.logged_in:
     if st.session_state.form == 'login_form':
         # Centered Login Form
-        st.image('https://github.com/sani002/greyfiles01/blob/main/Grey%20Files.png?raw=true')
-        st.title("Welcome to Grey Files 0.2")
+        st.image('https://github.com/sani002/mkpapp/blob/main/Header.png?raw=true')
+        st.title("mLab LLM 0.2")
         st.subheader("Please sign in")
 
         login_form = st.form(key='login_form', clear_on_submit=True)
@@ -188,8 +188,8 @@ if not st.session_state.logged_in:
 
     elif st.session_state.form == 'signup_form':
         # Centered Signup Form
-        st.image('https://github.com/sani002/greyfiles01/blob/main/Grey%20Files.png?raw=true')
-        st.title("Welcome to Grey Files 0.2")
+        st.image('https://github.com/sani002/mkpapp/blob/main/Header.png?raw=true')
+        st.title("mLab LLM 0.2")
         st.title("Create an Account")
         
         signup_form = st.form(key='signup_form', clear_on_submit=True)
@@ -277,9 +277,9 @@ if st.session_state.logged_in:
         user_logout()  # Call function to log out and reset state
         st.success("You have been logged out.")
 
-    st.title("Grey Files Prototype 0.1")
-    st.image('https://github.com/sani002/greyfiles01/blob/main/Grey%20Files.png?raw=true')
-    st.caption("Ask questions regarding historical events, relations, and key dates on Bangladesh. Our database is still maturing. Please be kind. Haha!")
+    st.title("mLab LLM 0.2")
+    st.image('https://github.com/sani002/mkpapp/blob/main/Header.png?raw=true')
+    st.caption("This app is in its early stage. We recommend you to seek professional advice from a real doctor. Thank you.")
     # Sidebar for suggestions
     with st.sidebar:
         st.header("Suggestions")
@@ -338,9 +338,9 @@ if st.session_state.logged_in:
             # Skip displaying suggestions in the chat UI
             continue
 
-        with st.chat_message("user", avatar="🦉"):
+        with st.chat_message("user", avatar="🗨️"):
             st.markdown(chat["user"])
-        with st.chat_message("assistant", avatar="🐦‍⬛"):
+        with st.chat_message("assistant", avatar="⚕️"):
             st.markdown(chat["response"])
 
             # Add Like/Dislike buttons for feedback
